@@ -228,7 +228,11 @@ class OnboardingFlow:
             cloud_panel = Panel(
                 Text.assemble(
                     ("☁️  ClickHouse Cloud Setup", "bold bright_cyan"), "\n\n",
-                    ("Enter your ClickHouse Cloud connection details:", "bright_white")
+                    ("Enter your ClickHouse Cloud connection details:", "bright_white"), "\n\n",
+                    ("⚠️  Important: ClickHouse Cloud requires:", "yellow"), "\n",
+                    ("• Port 8443 (HTTPS)", "dim"), "\n",
+                    ("• Secure connection enabled", "dim"), "\n",
+                    ("• Username and password", "dim")
                 ),
                 border_style="bright_cyan",
                 padding=(1, 2)
@@ -241,13 +245,19 @@ class OnboardingFlow:
             password = Prompt.ask("[bold bright_cyan]Password[/bold bright_cyan]", password=True)
             database = Prompt.ask("[bold bright_cyan]Database[/bold bright_cyan]", default="default")
             
+            # Validate ClickHouse Cloud settings
+            if port == 8123:
+                console.print("[yellow]⚠️  Warning: Port 8123 is for HTTP. ClickHouse Cloud uses port 8443 (HTTPS)[/yellow]")
+                if Confirm.ask("Use port 8443 instead?", default=True):
+                    port = 8443
+            
             return {
                 "clickhouse_host": host,
                 "clickhouse_port": port,
                 "clickhouse_username": username,
                 "clickhouse_password": password,
                 "clickhouse_database": database,
-                "clickhouse_secure": True
+                "clickhouse_secure": True  # Always secure for cloud
             }
     
     def save_config(self, config: Dict[str, Any]):
