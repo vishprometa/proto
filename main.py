@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Moja - ClickHouse AI Agent
+Proto - ClickHouse AI Agent
 A beautiful CLI AI agent for ClickHouse database analysis and operations.
 """
 
@@ -22,7 +22,7 @@ from ui.onboarding import needs_onboarding, OnboardingFlow
 from ui.settings_manager import SettingsManager
 
 app = typer.Typer(
-    name="moja",
+    name="proto",
     help="🚀 ClickHouse AI Agent - Intelligent database analysis and operations",
     rich_markup_mode="rich",
     no_args_is_help=False,
@@ -193,15 +193,15 @@ def load_data(
 
 @app.command()
 def settings():
-    """Manage Moja settings and configuration"""
+    """Manage Proto settings and configuration"""
     settings_manager = SettingsManager()
     settings_manager.run_settings_menu()
 
 @app.command()
 def version():
     """Show version information"""
-    console.print("[bold cyan]Moja ClickHouse AI Agent[/bold cyan]")
-    console.print("Version: 1.0.4")
+    console.print("[bold cyan]Proto ClickHouse AI Agent[/bold cyan]")
+    console.print("Version: 1.0.0")
     console.print("Built with ❤️  for ClickHouse analysis")
 
 if __name__ == "__main__":
