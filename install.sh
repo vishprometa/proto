@@ -37,11 +37,11 @@ detect_system() {
     case $OS in
         "Darwin")
             if [[ "$ARCH" == "arm64" ]]; then
-                BINARY="proto-macos-arm64"
-                PLATFORM="macos-arm64"
+                BINARY="proto-darwin-arm64"
+                PLATFORM="darwin-arm64"
             else
-                BINARY="proto-macos-x64"
-                PLATFORM="macos-x64"
+                BINARY="proto-darwin-x64"
+                PLATFORM="darwin-x64"
             fi
             ;;
         "Linux")
