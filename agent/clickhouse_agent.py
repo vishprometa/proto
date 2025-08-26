@@ -18,7 +18,6 @@ from rich.spinner import Spinner
 from ui.minimal_interface import ui
 
 from config.settings import ClickHouseConfig
-from providers.openrouter import OpenRouterProvider
 from providers.local_llm import LocalLLMProvider
 from tools.clickhouse_tools import ClickHouseConnection, ClickHouseToolExecutor, OPENAI_TOOLS
 from tools.data_tools import DataLoader, DataVisualizer, DataExporter
@@ -61,33 +60,17 @@ class ClickHouseAgent:
         self.data_visualizer = DataVisualizer(self.tool_executor.client)
         self.data_exporter = DataExporter(self.tool_executor.client)
         
-        # Initialize LLM provider and OpenAI client
-        if self.config.provider == "openrouter":
-            if not self.config.openrouter_api_key:
-                raise ValueError("OpenRouter API key is required for OpenRouter provider")
-            self.llm_provider = OpenRouterProvider(
-                api_key=self.config.openrouter_api_key,
-                model=self.config.openrouter_model,
-                provider_only=self.config.openrouter_provider_only,
-                data_collection=self.config.openrouter_data_collection
-            )
-            # Use OpenRouter's OpenAI-compatible endpoint
-            self.openai_client = AsyncOpenAI(
-                api_key=self.config.openrouter_api_key,
-                base_url="https://openrouter.ai/api/v1"
-            )
-        else:
-            # Use local llama-server
-            self.llm_provider = LocalLLMProvider(
-                base_url=self.config.local_llm_base_url,
-                model=self.config.local_llm_model
-            )
-            # Create OpenAI client for local server
-            openai_config = self.llm_provider.get_openai_config()
-            self.openai_client = AsyncOpenAI(
-                api_key=openai_config["api_key"],
-                base_url=openai_config["base_url"]
-            )
+        # Initialize LLM provider and OpenAI client (local only)
+        self.llm_provider = LocalLLMProvider(
+            base_url=self.config.local_llm_base_url,
+            model=self.config.local_llm_model
+        )
+        # Create OpenAI client for local server
+        openai_config = self.llm_provider.get_openai_config()
+        self.openai_client = AsyncOpenAI(
+            api_key=openai_config["api_key"],
+            base_url=openai_config["base_url"]
+        )
         
         logger.info("ClickHouse AI Agent initialized successfully")
     
@@ -360,7 +343,7 @@ class ClickHouseAgent:
     def _build_system_prompt(self) -> str:
         """Build the system prompt for the AI agent"""
         
-        return f"""You are Moja, a ClickHouse AI agent for data analysis and querying.
+        return f"""You are Proto, a ClickHouse AI agent for data analysis and querying.
 
 CORE MINDSET: Be proactive and smart. Handle vague queries by exploring what's available.
 

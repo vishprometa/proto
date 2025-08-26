@@ -23,16 +23,16 @@ class OnboardingFlow:
     
     def __init__(self):
         self.config = {}
-        # Store config in user config directory (e.g., ~/.config/moja/moja-config.json)
-        config_dir = Path.home() / ".config" / "moja"
+        # Store config in user config directory (e.g., ~/.config/proto/proto-config.json)
+        config_dir = Path.home() / ".config" / "proto"
         config_dir.mkdir(parents=True, exist_ok=True)
-        self.config_file = config_dir / "moja-config.json"
+        self.config_file = config_dir / "proto-config.json"
         
     def show_welcome(self):
         """Show welcome message for first-time users"""
         welcome_text = Text()
         welcome_text.append("🎉 ", style="bold bright_yellow")
-        welcome_text.append("Welcome to Moja!", style="bold bright_cyan")
+        welcome_text.append("Welcome to Proto!", style="bold bright_cyan")
         welcome_text.append(" 🎉", style="bold bright_yellow")
         
         subtitle = Text("Let's get you set up with your ClickHouse AI Agent", style="italic bright_white")
@@ -285,9 +285,9 @@ class OnboardingFlow:
             Align.center(
                 Text.assemble(
                     ("🎉 Setup Complete! 🎉", "bold bright_green"), "\n\n",
-                    ("Your Moja ClickHouse AI Agent is ready to use!", "bright_white"), "\n",
+                    ("Your Proto ClickHouse AI Agent is ready to use!", "bright_white"), "\n",
                     ("You can change these settings anytime with: ", "dim"),
-                    ("moja settings", "bright_cyan")
+                    ("proto settings", "bright_cyan")
                 )
             ),
             border_style="bright_green",
@@ -303,9 +303,9 @@ class OnboardingFlow:
 def needs_onboarding() -> bool:
     """Check if user needs onboarding"""
     # Preferred config location
-    config_file = Path.home() / ".config" / "moja" / "moja-config.json"
+    config_file = Path.home() / ".config" / "proto" / "proto-config.json"
     # Legacy location fallback (cwd)
-    legacy_config_file = Path("moja-config.json")
+    legacy_config_file = Path("proto-config.json")
     env_file = Path(".env")
     
     # If neither config file exists, needs onboarding

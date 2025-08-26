@@ -68,7 +68,7 @@ class MinimalInterface:
         self.console.print()
         
         # Simple centered title with better spacing
-        title = Text("✨ Moja", style="bold bright_cyan")
+        title = Text("✨ Proto", style="bold bright_cyan")
         subtitle = Text("ClickHouse AI Agent", style="dim bright_white")
         
         self.console.print(Align.center(title))
@@ -291,7 +291,7 @@ class MinimalInterface:
         """Minimal goodbye with spacing"""
         self.console.print()
         self.console.print()
-        self.console.print("[dim bright_cyan]✨[/dim bright_cyan] [bright_white]Thanks for using Moja![/bright_white]")
+        self.console.print("[dim bright_cyan]✨[/dim bright_cyan] [bright_white]Thanks for using Proto![/bright_white]")
         self.console.print()
         
     def show_statistics(self, stats: Dict[str, Any]):

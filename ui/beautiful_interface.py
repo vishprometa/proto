@@ -39,7 +39,7 @@ class BeautifulInterface:
         # Create gradient-like title
         title = Text()
         title.append("✨ ", style="bold bright_yellow")
-        title.append("Moja", style="bold bright_blue")
+        title.append("Proto", style="bold bright_blue")
         title.append(" ClickHouse AI Agent", style="bold bright_cyan")
         title.append(" ✨", style="bold bright_yellow")
         
@@ -209,7 +209,7 @@ class BeautifulInterface:
             Align.center(
                 Text.assemble(
                     ("👋 ", "bold bright_yellow"),
-                    ("Thank you for using Moja ClickHouse AI Agent!", "bold bright_white"),
+                    ("Thank you for using Proto ClickHouse AI Agent!", "bold bright_white"),
                     ("\n\n", ""),
                     ("Hope to see you again soon! ✨", "italic bright_cyan")
                 )

@@ -21,7 +21,7 @@ class SettingsManager:
     """Manage user settings and configurations"""
     
     def __init__(self):
-        self.config_file = Path("moja-config.json")
+        self.config_file = Path("proto-config.json")
         self.env_file = Path(".env")
         
     def load_current_config(self) -> Dict[str, Any]:
@@ -189,7 +189,7 @@ class SettingsManager:
                 Align.center(
                     Text.assemble(
                         ("⚙️  ", "bold bright_yellow"),
-                        ("Moja Settings", "bold bright_cyan"),
+                        ("Proto Settings", "bold bright_cyan"),
                         (" ⚙️", "bold bright_yellow")
                     )
                 ),
