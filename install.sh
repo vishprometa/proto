@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Proto ClickHouse AI Agent Installer
-# One-liner: curl -fsSL https://proto.dev/install.sh | sh
+# One-liner: curl -fsSL https://raw.githubusercontent.com/vishprometa/proto/main/install.sh | sh
 
 set -e
 
@@ -73,8 +73,8 @@ install_proto() {
     
     # Download the binary
     print_status "Downloading Proto binary..."
-    # Download from your hosted server
-    DOWNLOAD_URL="https://proto.dev/downloads/$BINARY"
+    # Download from GitHub releases
+    DOWNLOAD_URL="https://github.com/vishprometa/proto/releases/latest/download/$BINARY"
     
     if ! curl -fsSL -o proto "$DOWNLOAD_URL"; then
         print_error "Failed to download Proto binary"
@@ -129,7 +129,7 @@ main() {
     echo "Next steps:"
     echo "  1. Run 'proto' to start the interactive chat"
     echo "  2. Follow the onboarding to configure your setup"
-    echo "  3. Visit https://proto.dev for documentation"
+    echo "  3. Visit https://github.com/vishprometa/proto for documentation"
 }
 
 # Run main function
