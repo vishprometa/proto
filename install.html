@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Install Proto - ClickHouse AI Agent</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 2rem;
+            line-height: 1.6;
+            color: #333;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+        .install-box {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 2rem;
+            margin: 2rem 0;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            position: relative;
+        }
+        .install-command {
+            background: #2d3748;
+            color: #e2e8f0;
+            padding: 1rem;
+            border-radius: 6px;
+            margin: 1rem 0;
+            overflow-x: auto;
+            white-space: nowrap;
+        }
+        .copy-btn {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+        .copy-btn:hover {
+            background: #0056b3;
+        }
+        .success {
+            color: #28a745;
+            font-weight: bold;
+        }
+        .warning {
+            color: #ffc107;
+            font-weight: bold;
+        }
+        .info {
+            background: #e3f2fd;
+            border-left: 4px solid #2196f3;
+            padding: 1rem;
+            margin: 1rem 0;
+        }
+        .steps {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 6px;
+            padding: 1.5rem;
+            margin: 2rem 0;
+        }
+        .steps ol {
+            margin: 0;
+            padding-left: 1.5rem;
+        }
+        .steps li {
+            margin: 0.5rem 0;
+        }
+        code {
+            background: #f1f3f4;
+            padding: 0.2rem 0.4rem;
+            border-radius: 3px;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🚀 Install Proto</h1>
+        <p><strong>ClickHouse AI Agent</strong> - Natural language interface for ClickHouse databases</p>
+    </div>
+
+    <div class="install-box">
+        <button class="copy-btn" onclick="copyCommand()">Copy</button>
+        <h2>One-liner Installation</h2>
+        <p>Run this command in your terminal:</p>
+        <div class="install-command" id="install-command">
+curl -fsSL https://proto.dev/install.sh | sh
+        </div>
+        <p class="success">✅ No code signing issues</p>
+        <p class="warning">⚠️ Requires sudo privileges for installation</p>
+    </div>
+
+    <div class="info">
+        <h3>What this does:</h3>
+        <ul>
+            <li>Downloads the appropriate binary for your system (macOS ARM64/x64, Linux ARM64/x64)</li>
+            <li>Installs Proto to <code>/usr/local/bin/proto</code></li>
+            <li>Makes it available as a global command</li>
+            <li>Handles all dependencies automatically</li>
+        </ul>
+    </div>
+
+    <div class="steps">
+        <h3>After Installation:</h3>
+        <ol>
+            <li>Run <code>proto</code> to start the interactive chat</li>
+            <li>Follow the onboarding to configure your ClickHouse connection</li>
+            <li>Choose your AI provider (Local LLM, OpenRouter, or OpenAI)</li>
+            <li>Start asking questions about your data!</li>
+        </ol>
+    </div>
+
+    <h2>Alternative Installation Methods</h2>
+    
+    <h3>Using pipx (Recommended for Python users)</h3>
+    <div class="install-command">
+pipx install proto-clickhouse-agent
+    </div>
+
+    <h3>Using pip</h3>
+    <div class="install-command">
+pip install proto-clickhouse-agent
+    </div>
+
+    <h3>Manual Download</h3>
+    <p>Download the appropriate binary for your system:</p>
+    <ul>
+        <li><a href="https://proto.dev/downloads/proto-macos-arm64">macOS ARM64</a></li>
+        <li><a href="https://proto.dev/downloads/proto-macos-x64">macOS x64</a></li>
+        <li><a href="https://proto.dev/downloads/proto-linux-arm64">Linux ARM64</a></li>
+        <li><a href="https://proto.dev/downloads/proto-linux-x64">Linux x64</a></li>
+    </ul>
+
+    <h2>System Requirements</h2>
+    <ul>
+        <li>macOS 10.15+ or Linux</li>
+        <li>ClickHouse database (local or cloud)</li>
+        <li>AI provider (Local LLM, OpenRouter, or OpenAI)</li>
+        <li>~3.5GB free space for AI model (first run)</li>
+    </ul>
+
+    <h2>Getting Help</h2>
+    <ul>
+        <li>Run <code>proto --help</code> for command help</li>
+        <li>Visit <a href="https://proto.dev">Proto website</a> for documentation</li>
+        <li>Check <a href="https://proto.dev/support">support page</a> for help</li>
+    </ul>
+
+    <script>
+        function copyCommand() {
+            const command = document.getElementById('install-command').textContent.trim();
+            navigator.clipboard.writeText(command).then(() => {
+                const btn = document.querySelector('.copy-btn');
+                const originalText = btn.textContent;
+                btn.textContent = 'Copied!';
+                btn.style.background = '#28a745';
+                setTimeout(() => {
+                    btn.textContent = originalText;
+                    btn.style.background = '#007bff';
+                }, 2000);
+            });
+        }
+    </script>
+</body>
+</html>
