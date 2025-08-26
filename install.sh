@@ -29,96 +29,82 @@ print_error() {
     echo -e "${RED}[ERROR]${NC} $1"
 }
 
-
+# Detect OS and architecture
+detect_system() {
+    OS=$(uname -s)
+    ARCH=$(uname -m)
+    
+    case $OS in
+        "Darwin")
+            if [[ "$ARCH" == "arm64" ]]; then
+                BINARY="proto-macos-arm64"
+                PLATFORM="macos-arm64"
+            else
+                BINARY="proto-macos-x64"
+                PLATFORM="macos-x64"
+            fi
+            ;;
+        "Linux")
+            if [[ "$ARCH" == "aarch64" ]]; then
+                BINARY="proto-linux-arm64"
+                PLATFORM="linux-arm64"
+            else
+                BINARY="proto-linux-x64"
+                PLATFORM="linux-x64"
+            fi
+            ;;
+        *)
+            print_error "Unsupported operating system: $OS"
+            exit 1
+            ;;
+    esac
+}
 
 # Download and install Proto
 install_proto() {
-    print_status "Checking system requirements..."
+    print_status "Detecting system..."
+    detect_system
     
-    # Check if Python is installed
-    if ! command -v python3 >/dev/null 2>&1; then
-        print_error "Python 3 is not installed!"
+    print_status "Installing Proto for $OS ($ARCH)..."
+    
+    # Create temporary directory
+    TEMP_DIR=$(mktemp -d)
+    cd "$TEMP_DIR"
+    
+    # Download the binary
+    print_status "Downloading Proto binary..."
+    # Download from GitHub releases
+    DOWNLOAD_URL="https://github.com/vishprometa/proto/releases/latest/download/$BINARY"
+    
+    if ! curl -fsSL -o proto "$DOWNLOAD_URL"; then
+        print_error "Failed to download Proto binary"
+        print_warning "The binary release is not available yet."
         echo ""
-        echo "Please install Python 3 first:"
+        echo "For now, please install using pipx:"
+        echo "  pipx install proto-clickhouse-agent"
         echo ""
-        echo "  macOS:"
-        echo "    brew install python3"
-        echo "    # or download from https://python.org"
-        echo ""
-        echo "  Linux (Ubuntu/Debian):"
-        echo "    sudo apt update && sudo apt install python3 python3-pip"
-        echo ""
-        echo "  Linux (CentOS/RHEL):"
-        echo "    sudo yum install python3 python3-pip"
-        echo ""
+        echo "Or install Python first, then run:"
+        echo "  pip install proto-clickhouse-agent"
         exit 1
     fi
     
-    # Check Python version
-    PYTHON_VERSION=$(python3 -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")
-    PYTHON_MAJOR=$(echo $PYTHON_VERSION | cut -d. -f1)
-    PYTHON_MINOR=$(echo $PYTHON_VERSION | cut -d. -f2)
+    # Make executable
+    chmod +x proto
     
-    if [ "$PYTHON_MAJOR" -lt 3 ] || ([ "$PYTHON_MAJOR" -eq 3 ] && [ "$PYTHON_MINOR" -lt 8 ]); then
-        print_error "Python 3.8 or higher is required. You have Python $PYTHON_VERSION"
+    # Install to /usr/local/bin
+    print_status "Installing to /usr/local/bin/proto..."
+    if ! sudo mv proto /usr/local/bin/; then
+        print_error "Failed to install Proto. Make sure you have sudo privileges."
         exit 1
     fi
     
-    print_success "Python $PYTHON_VERSION detected"
+    # Clean up
+    cd - > /dev/null
+    rm -rf "$TEMP_DIR"
     
-    # Check if pipx is installed
-    if ! command -v pipx >/dev/null 2>&1; then
-        print_status "pipx not found. Installing pipx..."
-        
-        # Try to install pipx
-        if python3 -m pip install --user pipx; then
-            # Add pipx to PATH
-            if python3 -m pipx ensurepath; then
-                print_success "pipx installed successfully"
-                # Reload shell environment
-                export PATH="$HOME/.local/bin:$PATH"
-            else
-                print_warning "pipx installed but PATH not updated. Please restart your terminal or run:"
-                echo "  export PATH=\"\$HOME/.local/bin:\$PATH\""
-            fi
-        else
-            print_error "Failed to install pipx automatically"
-            echo ""
-            echo "Please install pipx manually:"
-            echo "  python3 -m pip install --user pipx"
-            echo "  python3 -m pipx ensurepath"
-            echo ""
-            echo "Then restart your terminal and run this installer again."
-            exit 1
-        fi
-    fi
-    
-    # Install using pipx
-    print_status "Installing proto-clickhouse-agent..."
-    if ! pipx install proto-clickhouse-agent; then
-        print_error "Failed to install Proto using pipx"
-        print_warning "Trying alternative installation method..."
-        
-        # Fallback to pip install
-        if python3 -m pip install --user proto-clickhouse-agent; then
-            print_success "Proto installed successfully using pip!"
-            print_status "Run 'proto' to start using it!"
-            print_warning "If 'proto' command not found, restart your terminal or run:"
-            echo "  export PATH=\"\$HOME/.local/bin:\$PATH\""
-        else
-            print_error "All installation methods failed"
-            echo ""
-            echo "Please try installing manually:"
-            echo "  pipx install proto-clickhouse-agent"
-            echo "  # or"
-            echo "  pip install proto-clickhouse-agent"
-            exit 1
-        fi
-    else
-        print_success "Proto installed successfully!"
-        print_status "Run 'proto' to start using it!"
-        print_warning "First run will download the AI model (~3.5GB)"
-    fi
+    print_success "Proto installed successfully!"
+    print_status "Run 'proto' to start using it!"
+    print_warning "First run will download the AI model (~3.5GB)"
 }
 
 # Check if already installed
@@ -131,8 +117,8 @@ check_existing() {
             print_status "Installation cancelled."
             exit 0
         fi
-        # Uninstall existing version
-        pipx uninstall proto-clickhouse-agent 2>/dev/null || true
+        # Remove existing version
+        sudo rm -f /usr/local/bin/proto 2>/dev/null || true
     fi
 }
 
