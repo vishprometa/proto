@@ -229,10 +229,9 @@ class OnboardingFlow:
                 Text.assemble(
                     ("☁️  ClickHouse Cloud Setup", "bold bright_cyan"), "\n\n",
                     ("Enter your ClickHouse Cloud connection details:", "bright_white"), "\n\n",
-                    ("⚠️  Important: ClickHouse Cloud requires:", "yellow"), "\n",
-                    ("• Port 8443 (HTTPS)", "dim"), "\n",
-                    ("• Secure connection enabled", "dim"), "\n",
-                    ("• Username and password", "dim")
+                    ("💡 Common ports:", "blue"), "\n",
+                    ("• 8123 (HTTP)", "dim"), "\n",
+                    ("• 8443 (HTTPS)", "dim")
                 ),
                 border_style="bright_cyan",
                 padding=(1, 2)
@@ -240,16 +239,16 @@ class OnboardingFlow:
             console.print(cloud_panel)
             
             host = Prompt.ask("[bold bright_cyan]Host[/bold bright_cyan]")
-            port = int(Prompt.ask("[bold bright_cyan]Port[/bold bright_cyan]", default="8443"))
+            port = int(Prompt.ask("[bold bright_cyan]Port[/bold bright_cyan]", default="8123"))
             username = Prompt.ask("[bold bright_cyan]Username[/bold bright_cyan]", default="default")
             password = Prompt.ask("[bold bright_cyan]Password[/bold bright_cyan]", password=True)
             database = Prompt.ask("[bold bright_cyan]Database[/bold bright_cyan]", default="default")
             
-            # Validate ClickHouse Cloud settings
-            if port == 8123:
-                console.print("[yellow]⚠️  Warning: Port 8123 is for HTTP. ClickHouse Cloud uses port 8443 (HTTPS)[/yellow]")
-                if Confirm.ask("Use port 8443 instead?", default=True):
-                    port = 8443
+            # Ask about secure connection
+            secure = Confirm.ask(
+                "[bold bright_cyan]Use secure connection (HTTPS)?[/bold bright_cyan]",
+                default=True if port == 8443 else False
+            )
             
             return {
                 "clickhouse_host": host,
@@ -257,7 +256,7 @@ class OnboardingFlow:
                 "clickhouse_username": username,
                 "clickhouse_password": password,
                 "clickhouse_database": database,
-                "clickhouse_secure": True  # Always secure for cloud
+                "clickhouse_secure": secure
             }
     
     def save_config(self, config: Dict[str, Any]):
