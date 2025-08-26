@@ -321,7 +321,7 @@ def needs_onboarding() -> bool:
                 # Check if essential keys exist
                 has_provider = any(
                     k in config for k in [
-                        'openrouter_api_key',
+                        'local_llm_base_url',
                         'ollama_base_url', 
                         'lmstudio_base_url',
                         'openai_api_key',

@@ -42,7 +42,7 @@ def setup_logging(verbose: bool = False, quiet_mode: bool = False) -> None:
     import logging
     
     # File handler for detailed logs
-    file_handler = logging.FileHandler(logs_dir / "moja.log")
+    file_handler = logging.FileHandler(logs_dir / "proto.log")
     file_handler.setLevel(logging.DEBUG)
     file_formatter = logging.Formatter(
         '%(asctime)s - %(name)s - %(levelname)s - %(message)s'

@@ -78,7 +78,7 @@ logs/
 *.env
 config.json
 proto-config.json
-moja-config.json
+Proto-config.json
 
 # Build artifacts
 builds/

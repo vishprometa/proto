@@ -1,5 +1,5 @@
 """
-Settings management system for Moja ClickHouse AI Agent
+Settings management system for Proto ClickHouse AI Agent
 Allows users to view, edit, and switch between configurations
 """
 
@@ -50,9 +50,9 @@ class SettingsManager:
         provider = config.get("provider", "unknown")
         ai_table.add_row("🤖 Provider:", provider.title())
         
-        if provider == "openrouter":
-            ai_table.add_row("🔑 API Key:", "••••••••" if config.get("openrouter_api_key") else "Not set")
-            ai_table.add_row("🧠 Model:", config.get("openrouter_model", "Not set"))
+        if provider == "local":
+            ai_table.add_row("🌐 Base URL:", config.get("local_llm_base_url", "Not set"))
+            ai_table.add_row("🧠 Model:", config.get("local_llm_model", "Not set"))
         elif provider == "ollama":
             ai_table.add_row("🌐 Base URL:", config.get("ollama_base_url", "Not set"))
             ai_table.add_row("🧠 Model:", config.get("ollama_model", "Not set"))

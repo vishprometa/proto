@@ -67,7 +67,7 @@ proto load-data users.csv users
 Proto supports multiple AI providers:
 
 - **Local LLM**: Run completely offline with local models
-- **OpenRouter**: Access to various cloud AI models
+- **Local LLM**: Built-in ClickHouse AI model (no API keys needed)
 - **OpenAI**: Direct OpenAI API integration
 
 Configuration is stored in `~/.config/proto/proto-config.json`.
@@ -76,7 +76,7 @@ Configuration is stored in `~/.config/proto/proto-config.json`.
 
 - macOS 10.15+ or Linux
 - ClickHouse database (local or cloud)
-- AI provider (Local LLM, OpenRouter, or OpenAI)
+- AI provider (Local LLM built-in)
 - ~3.5GB free space for AI model (first run)
 
 ## Development

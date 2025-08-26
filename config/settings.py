@@ -25,17 +25,17 @@ class ClickHouseConfig(BaseModel):
     secure: bool = Field(default=False, description="Use HTTPS/secure connection")
 
     # Provider selection
-    provider: str = Field(default="local", description="LLM provider: local, openrouter")
+    provider: str = Field(default="local", description="LLM provider: local only")
     
     # Local LLM (llama.cpp / llamafile / llama-cpp-python server) configuration
     local_llm_base_url: str = Field(default="http://127.0.0.1:8000/v1", description="Local LLM server base URL")
     local_llm_model: str = Field(default="qwen3-1.7b", description="Local LLM model name")
     
-    # OpenRouter configuration
-    openrouter_api_key: str = Field(default="", description="OpenRouter API key")
-    openrouter_model: str = Field(default="openai/gpt-4o-mini", description="OpenRouter model")
-    openrouter_provider_only: str = Field(default="openai", description="OpenRouter provider preference")
-    openrouter_data_collection: str = Field(default="deny", description="OpenRouter data collection setting")
+    # Legacy OpenRouter configuration (kept for backward compatibility)
+    openrouter_api_key: str = Field(default="", description="Legacy OpenRouter API key")
+    openrouter_model: str = Field(default="openai/gpt-4o-mini", description="Legacy OpenRouter model")
+    openrouter_provider_only: str = Field(default="openai", description="Legacy OpenRouter provider preference")
+    openrouter_data_collection: str = Field(default="deny", description="Legacy OpenRouter data collection setting")
     
     # Agent configuration
     max_tool_calls: int = Field(default=35, description="Maximum tool calls per conversation")
@@ -58,8 +58,8 @@ def load_config(
     config_data = {}
     
     # Determine default config file if not provided
-    default_config_file = Path.home() / ".config" / "moja" / "moja-config.json"
-    legacy_config_file = Path("moja-config.json")
+    default_config_file = Path.home() / ".config" / "proto" / "proto-config.json"
+    legacy_config_file = Path("proto-config.json")
     candidate_config = None
     if config_file and Path(config_file).exists():
         candidate_config = Path(config_file)
@@ -121,23 +121,11 @@ def load_config(
     
     config = ClickHouseConfig(**config_data)
     
-    # Interactive configuration if OpenRouter API key is missing AND provider is OpenRouter
-    if config.provider == "openrouter" and not config.openrouter_api_key:
-        console.print("[yellow]⚠️  OpenRouter API key not found[/yellow]")
-        
-        if Confirm.ask("Would you like to enter your OpenRouter API key now?"):
-            api_key = Prompt.ask(
-                "Enter your OpenRouter API key",
-                password=True
-            )
-            config.openrouter_api_key = api_key
-            
-            # Ask if they want to save it
-            if Confirm.ask("Save API key to environment file (.env)?"):
-                save_env_config(config)
-        else:
-            console.print("[red]❌ OpenRouter API key is required for AI functionality[/red]")
-            raise typer.Exit(1)
+    # No interactive configuration needed for local provider
+    if config.provider != "local":
+        console.print("[yellow]⚠️  Only local provider is supported[/yellow]")
+        console.print("[blue]ℹ️  Switching to local provider automatically[/blue]")
+        config.provider = "local"
     
     return config
 
@@ -183,7 +171,7 @@ def create_sample_config():
         "max_tokens": 4000
     }
     
-    config_path = Path("moja-config.json")
+    config_path = Path("proto-config.json")
     
     import json
     with open(config_path, "w") as f:
