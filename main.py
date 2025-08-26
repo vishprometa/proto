@@ -198,6 +198,43 @@ def settings():
     settings_manager.run_settings_menu()
 
 @app.command()
+def clear():
+    """Clear all configuration and start fresh"""
+    from pathlib import Path
+    from rich.prompt import Confirm
+    
+    # Config file locations
+    config_files = [
+        Path.home() / ".config" / "proto" / "proto-config.json",
+        Path("proto-config.json"),
+        Path(".env")
+    ]
+    
+    existing_files = [f for f in config_files if f.exists()]
+    
+    if not existing_files:
+        console.print("[yellow]No configuration files found to clear.[/yellow]")
+        return
+    
+    console.print("[bold red]⚠️  This will delete all Proto configuration:[/bold red]")
+    for file in existing_files:
+        console.print(f"  • {file}")
+    console.print()
+    
+    if Confirm.ask("[bold red]Are you sure you want to clear all configuration?[/bold red]"):
+        for file in existing_files:
+            try:
+                file.unlink()
+                console.print(f"[green]✓[/green] Deleted {file}")
+            except Exception as e:
+                console.print(f"[red]✗[/red] Failed to delete {file}: {e}")
+        
+        console.print()
+        console.print("[green]🎉 Configuration cleared! Run 'proto' to start fresh onboarding.[/green]")
+    else:
+        console.print("[blue]Configuration clearing cancelled.[/blue]")
+
+@app.command()
 def version():
     """Show version information"""
     console.print("[bold cyan]Proto ClickHouse AI Agent[/bold cyan]")
