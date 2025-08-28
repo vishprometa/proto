@@ -12,6 +12,8 @@ Proto is an intelligent CLI agent that allows you to interact with ClickHouse da
 - 📈 **Data Visualization**: Generate charts and visualizations from your data
 - ⚡ **Fast Setup**: One-command installation, no Python knowledge required
 - 🔒 **Privacy-First**: Option to run completely locally with local AI models
+- 🚀 **Cross-Platform**: Works on macOS (Intel/Apple Silicon), Linux, and Windows
+- 📦 **Easy Installation**: Install via pipx, pip, or one-liner script
 
 ## Quick Start
 
@@ -31,12 +33,7 @@ Follow the interactive onboarding to configure your ClickHouse connection and AI
 
 ## Installation Options
 
-### One-liner (Recommended)
-```bash
-curl -fsSL https://proto.dev/install.sh | sh
-```
-
-### Using pipx
+### Using pipx (Recommended)
 ```bash
 pipx install proto-clickhouse-agent
 ```
@@ -44,6 +41,11 @@ pipx install proto-clickhouse-agent
 ### Using pip
 ```bash
 pip install proto-clickhouse-agent
+```
+
+### One-liner (Legacy)
+```bash
+curl -fsSL https://proto.dev/install.sh | sh
 ```
 
 ## Usage Examples
