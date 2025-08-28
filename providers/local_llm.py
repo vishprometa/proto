@@ -9,6 +9,7 @@ import os
 import psutil
 import shutil
 import sys
+import requests
 from typing import Dict, List, Any, Optional
 from utils.logging import get_logger
 
@@ -30,6 +31,14 @@ class LocalLLMProvider:
         self.host = "127.0.0.1"
         self.port = 8000
         self.server_process = None
+        
+        # Model download configuration
+        self.model_name = "vishprometa/clickhouse-qwen3-1.7b-gguf"
+        self.display_name = "clickhouse-qwen3-1.7b-gguf"
+        self.model_file = "unsloth.F16.gguf"
+        self.model_url = f"https://huggingface.co/{self.model_name}/resolve/main/{self.model_file}"
+        self.cache_dir = os.path.expanduser("~/.cache/llama.cpp")
+        self.model_path = os.path.join(self.cache_dir, f"{self.model_name.replace('/', '_')}_{self.model_file}")
         
         # Extract host and port from base_url
         try:
@@ -55,18 +64,186 @@ class LocalLLMProvider:
             # Ensure llama-server is installed
             self._ensure_llama_server_installed()
             
+            # Download model if not present
+            if not self._download_model_with_progress():
+                raise RuntimeError("Model download failed")
+            
             # Check if server is already running
             if self._is_server_running():
                 self._announce(f"✅ ClickHouse AI Agent ready on {self.host}:{self.port}")
                 return
             
-            # Start the server (will download model if needed)
+            # Start the server with local model file
             self._start_server()
-            self._wait_for_server(timeout=600)  # 10 minutes for model download
+            self._wait_for_server()  # No timeout for model download
             
         except Exception as e:
             logger.error(f"Auto-setup failed: {e}")
             raise RuntimeError(f"Failed to setup ClickHouse AI Agent: {e}")
+
+    def _download_model_with_progress(self):
+        """Download model with real progress tracking using curl"""
+        try:
+            from rich.progress import Progress, SpinnerColumn, TextColumn, TimeElapsedColumn, BarColumn, TaskProgressColumn, DownloadColumn, TransferSpeedColumn
+            
+            # Ensure cache directory exists
+            os.makedirs(self.cache_dir, exist_ok=True)
+            
+            # Check if model already exists
+            if os.path.exists(self.model_path):
+                file_size = os.path.getsize(self.model_path)
+                if file_size > 3_000_000_000:  # > 3GB, assume complete
+                    self._announce(f"✅ Model already downloaded: {self.model_path}")
+                    return True
+            
+            self._announce(f"📥 Downloading {self.display_name}...")
+            
+            # Get file size for progress tracking
+            try:
+                response = requests.head(self.model_url, allow_redirects=True)
+                total_size = int(response.headers.get('content-length', 0))
+            except Exception as e:
+                logger.warning(f"Could not get file size: {e}")
+                total_size = 3_447_349_440  # Known size ~3.2GB
+            
+            # Try simple download first (more reliable)
+            if self._simple_download_with_progress(total_size):
+                return True
+            
+            # Fallback to curl if simple download fails
+            return self._curl_download_with_progress(total_size)
+                    
+        except Exception as e:
+            logger.error(f"Failed to download model: {e}")
+            raise RuntimeError(f"Model download failed: {e}")
+
+    def _simple_download_with_progress(self, total_size: int) -> bool:
+        """Simple download using requests with progress tracking"""
+        try:
+            from rich.progress import Progress, SpinnerColumn, TextColumn, TimeElapsedColumn, BarColumn, TaskProgressColumn, DownloadColumn, TransferSpeedColumn
+            
+            with Progress(
+                SpinnerColumn(),
+                TextColumn("[progress.description]{task.description}"),
+                BarColumn(),
+                TaskProgressColumn(),
+                DownloadColumn(),
+                TransferSpeedColumn(),
+                TimeElapsedColumn(),
+                console=_console,
+                transient=False,
+            ) as progress:
+                task = progress.add_task(
+                    f"🔄 Downloading {self.display_name}...", 
+                    total=total_size
+                )
+                
+                # Download with requests and stream
+                response = requests.get(self.model_url, stream=True, allow_redirects=True)
+                response.raise_for_status()
+                
+                downloaded_size = 0
+                with open(self.model_path, 'wb') as f:
+                    for chunk in response.iter_content(chunk_size=8192):
+                        if chunk:
+                            f.write(chunk)
+                            downloaded_size += len(chunk)
+                            progress.update(task, completed=downloaded_size)
+                
+                if downloaded_size > 3_000_000_000:  # > 3GB
+                    progress.update(task, description="✅ Model download completed!", completed=total_size)
+                    self._announce(f"✅ Model downloaded successfully: {self.model_path}")
+                    return True
+                else:
+                    progress.update(task, description="❌ Download incomplete")
+                    return False
+                    
+        except Exception as e:
+            logger.warning(f"Simple download failed, trying curl: {e}")
+            return False
+
+    def _curl_download_with_progress(self, total_size: int) -> bool:
+        """Download using curl with progress tracking"""
+        try:
+            from rich.progress import Progress, SpinnerColumn, TextColumn, TimeElapsedColumn, BarColumn, TaskProgressColumn, DownloadColumn, TransferSpeedColumn
+            
+            with Progress(
+                SpinnerColumn(),
+                TextColumn("[progress.description]{task.description}"),
+                BarColumn(),
+                TaskProgressColumn(),
+                DownloadColumn(),
+                TransferSpeedColumn(),
+                TimeElapsedColumn(),
+                console=_console,
+                transient=False,
+            ) as progress:
+                task = progress.add_task(
+                    f"🔄 Downloading {self.display_name}...", 
+                    total=total_size
+                )
+                
+                # Use curl for reliable download with progress
+                cmd = [
+                    "curl", "-L", "-o", self.model_path,
+                    "--progress-bar",
+                    self.model_url
+                ]
+                
+                process = subprocess.Popen(
+                    cmd,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    universal_newlines=True,
+                    bufsize=1
+                )
+                
+                downloaded_size = 0
+                last_update_time = time.time()
+                
+                # Simple progress tracking based on file size
+                start_time = time.time()
+                while process.poll() is None:
+                    # Check if file exists and get its size
+                    if os.path.exists(self.model_path):
+                        current_size = os.path.getsize(self.model_path)
+                        if current_size > downloaded_size:
+                            downloaded_size = current_size
+                            progress.update(task, completed=downloaded_size)
+                            last_update_time = time.time()
+                    
+                    # Update description periodically
+                    current_time = time.time()
+                    if current_time - last_update_time > 2.0:  # Update every 2 seconds
+                        if downloaded_size < total_size:
+                            elapsed = current_time - start_time
+                            if elapsed > 0 and downloaded_size > 0:
+                                # Calculate estimated speed and remaining time
+                                speed = downloaded_size / elapsed
+                                remaining = (total_size - downloaded_size) / speed if speed > 0 else 0
+                                progress.update(task, description=f"🔄 Downloading {self.display_name}... ({downloaded_size}/{total_size} bytes, {speed/1024/1024:.1f} MB/s)")
+                        last_update_time = current_time
+                    
+                    time.sleep(0.5)  # Check every 0.5 seconds
+                
+                process.wait()
+                
+                if process.returncode == 0 and os.path.exists(self.model_path):
+                    file_size = os.path.getsize(self.model_path)
+                    if file_size > 3_000_000_000:  # > 3GB
+                        progress.update(task, description="✅ Model download completed!", completed=total_size)
+                        self._announce(f"✅ Model downloaded successfully: {self.model_path}")
+                        return True
+                    else:
+                        progress.update(task, description="❌ Download incomplete")
+                        raise RuntimeError(f"Downloaded file too small: {file_size} bytes")
+                else:
+                    progress.update(task, description="❌ Download failed")
+                    raise RuntimeError(f"Download failed with return code: {process.returncode}")
+                    
+        except Exception as e:
+            logger.error(f"Failed to download model: {e}")
+            raise RuntimeError(f"Model download failed: {e}")
 
     def _ensure_llama_server_installed(self):
         """Ensure llama-server is installed and available"""
@@ -170,7 +347,7 @@ class LocalLLMProvider:
             template_path = os.path.join(os.path.dirname(__file__), "..", "fixed_chat_template.jinja")
             cmd = [
                 "llama-server",
-                "-hf", "vishprometa/clickhouse-qwen3-1.7b-gguf",  # Use SafeTensors version for now
+                "-m", self.model_path,  # Use local model file instead of Hugging Face URL
                 "--jinja",
                 "--chat-template-file", template_path,
                 "--reasoning-format", "deepseek",
@@ -222,45 +399,27 @@ class LocalLLMProvider:
         except Exception as e:
             logger.warning(f"Error killing existing servers: {e}")
 
-    def _wait_for_server(self, timeout: int = 600):
-        """Wait for server to be ready with download progress"""
-        from rich.progress import Progress, SpinnerColumn, TextColumn, TimeElapsedColumn, BarColumn, TaskProgressColumn
+    def _wait_for_server(self, timeout: int = 60):
+        """Wait for server to be ready with simple progress"""
+        from rich.progress import Progress, SpinnerColumn, TextColumn, TimeElapsedColumn
         
         with Progress(
             SpinnerColumn(),
             TextColumn("[progress.description]{task.description}"),
-            BarColumn(),
-            TaskProgressColumn(),
             TimeElapsedColumn(),
             console=_console,
             transient=False,
         ) as progress:
-            task = progress.add_task("🔄 ClickHouse AI Agent LLM download in progress...", total=100)
+            task = progress.add_task("🔄 Starting ClickHouse AI Agent...", total=None)
             
             start_time = time.time()
-            last_check = 0
-            download_progress = 0
             
             while time.time() - start_time < timeout:
                 if self._is_server_running():
-                    progress.update(task, description="✅ ClickHouse AI Agent ready!", completed=100)
+                    progress.update(task, description="✅ ClickHouse AI Agent ready!")
                     return
                 
-                # Simulate download progress (since we can't get real progress from llama-server)
-                elapsed = int(time.time() - start_time)
-                if elapsed > 0:
-                    # Estimate progress based on time (model is ~3.5GB, typical download speed ~10MB/s)
-                    estimated_progress = min(95, int((elapsed * 10) / 35))  # 10MB/s = 350s for 3.5GB
-                    if estimated_progress > download_progress:
-                        download_progress = estimated_progress
-                        progress.update(task, completed=download_progress)
-                
-                # Update description every 30 seconds
-                if elapsed >= 30 and elapsed % 30 == 0 and elapsed != last_check:
-                    progress.update(task, description=f"🔄 ClickHouse AI Agent LLM download in progress... ({elapsed}s elapsed)")
-                    last_check = elapsed
-                
-                time.sleep(2)  # Check every 2 seconds
+                time.sleep(1)  # Check every second
             
             progress.update(task, description="❌ Timeout waiting for ClickHouse AI Agent")
             raise TimeoutError(f"ClickHouse AI Agent did not start within {timeout} seconds")
