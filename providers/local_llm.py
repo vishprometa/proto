@@ -40,6 +40,11 @@ class LocalLLMProvider:
         self.cache_dir = os.path.expanduser("~/.cache/llama.cpp")
         self.model_path = os.path.join(self.cache_dir, f"{self.model_name.replace('/', '_')}_{self.model_file}")
         
+        # Chat template configuration
+        self.chat_template_file = "chat_template.jinja"
+        self.chat_template_url = f"https://huggingface.co/{self.model_name}/resolve/main/{self.chat_template_file}"
+        self.chat_template_path = os.path.join(self.cache_dir, f"{self.model_name.replace('/', '_')}_{self.chat_template_file}")
+        
         # Extract host and port from base_url
         try:
             if "://" in base_url:
@@ -64,9 +69,32 @@ class LocalLLMProvider:
             # Ensure llama-server is installed
             self._ensure_llama_server_installed()
             
-            # Download model if not present
-            if not self._download_model_with_progress():
-                raise RuntimeError("Model download failed")
+            # Download model and chat template together
+            model_exists = os.path.exists(self.model_path) and os.path.getsize(self.model_path) > 3_000_000_000
+            template_exists = os.path.exists(self.chat_template_path)
+            
+            logger.info(f"Model status: exists={model_exists}, path={self.model_path}")
+            logger.info(f"Template status: exists={template_exists}, path={self.chat_template_path}")
+            
+            # If model doesn't exist, download both model and template
+            if not model_exists:
+                logger.info("Model not found, downloading model and template...")
+                if not self._download_model_with_progress():
+                    raise RuntimeError("Model download failed")
+                # Download template right after model download
+                if not self._download_chat_template():
+                    logger.warning("Chat template download failed, will try to start server without custom template")
+                    self.chat_template_path = None
+            
+            # If model exists but template doesn't (existing users), download just the template
+            elif not template_exists:
+                logger.info("Model exists but template missing, downloading template...")
+                self._announce("📥 Downloading missing chat template for existing model...")
+                if not self._download_chat_template():
+                    logger.warning("Chat template download failed, will try to start server without custom template")
+                    self.chat_template_path = None
+            else:
+                logger.info("Both model and template exist, proceeding with startup...")
             
             # Check if server is already running
             if self._is_server_running():
@@ -117,6 +145,65 @@ class LocalLLMProvider:
             logger.error(f"Failed to download model: {e}")
             raise RuntimeError(f"Model download failed: {e}")
 
+    def _download_chat_template(self, quiet: bool = False) -> bool:
+        """Download chat template from Hugging Face repository"""
+        try:
+            # Check if template already exists and is recent (less than 24 hours old)
+            if os.path.exists(self.chat_template_path):
+                file_age = time.time() - os.path.getmtime(self.chat_template_path)
+                if file_age < 86400:  # 24 hours in seconds
+                    if not quiet:
+                        logger.info(f"Chat template already exists and is recent: {self.chat_template_path}")
+                    return True
+                else:
+                    if not quiet:
+                        self._announce("🔄 Updating chat template...")
+            else:
+                if not quiet:
+                    self._announce("📥 Downloading chat template...")
+            
+            # Ensure cache directory exists
+            os.makedirs(self.cache_dir, exist_ok=True)
+            
+            # Download the chat template
+            logger.info(f"Downloading chat template from: {self.chat_template_url}")
+            response = requests.get(self.chat_template_url, timeout=30)
+            response.raise_for_status()
+            
+            # Write to file
+            with open(self.chat_template_path, 'w', encoding='utf-8') as f:
+                f.write(response.text)
+            
+            # Verify the file was written correctly
+            file_size = os.path.getsize(self.chat_template_path)
+            logger.info(f"Chat template saved: {self.chat_template_path} ({file_size} bytes)")
+            
+            if not quiet:
+                self._announce(f"✅ Chat template downloaded: {self.chat_template_path}")
+            return True
+            
+        except requests.RequestException as e:
+            logger.error(f"Failed to download chat template from {self.chat_template_url}: {e}")
+            return False
+        except Exception as e:
+            logger.error(f"Failed to save chat template: {e}")
+            return False
+
+    def refresh_chat_template(self) -> bool:
+        """Force refresh the chat template from Hugging Face repository"""
+        try:
+            # Remove existing template to force re-download
+            if os.path.exists(self.chat_template_path):
+                os.remove(self.chat_template_path)
+                self._announce("🗑️ Removed old chat template")
+            
+            # Download fresh template
+            return self._download_chat_template()
+            
+        except Exception as e:
+            logger.error(f"Failed to refresh chat template: {e}")
+            return False
+
     def _simple_download_with_progress(self, total_size: int) -> bool:
         """Simple download using requests with progress tracking"""
         try:
@@ -153,6 +240,14 @@ class LocalLLMProvider:
                 if downloaded_size > 3_000_000_000:  # > 3GB
                     progress.update(task, description="✅ Model download completed!", completed=total_size)
                     self._announce(f"✅ Model downloaded successfully: {self.model_path}")
+                    
+                    # Download chat template immediately after successful model download
+                    progress.update(task, description="📥 Downloading chat template...")
+                    if self._download_chat_template(quiet=True):
+                        progress.update(task, description="✅ Model and template ready!")
+                    else:
+                        progress.update(task, description="✅ Model ready (template download failed)")
+                    
                     return True
                 else:
                     progress.update(task, description="❌ Download incomplete")
@@ -233,6 +328,14 @@ class LocalLLMProvider:
                     if file_size > 3_000_000_000:  # > 3GB
                         progress.update(task, description="✅ Model download completed!", completed=total_size)
                         self._announce(f"✅ Model downloaded successfully: {self.model_path}")
+                        
+                        # Download chat template immediately after successful model download
+                        progress.update(task, description="📥 Downloading chat template...")
+                        if self._download_chat_template(quiet=True):
+                            progress.update(task, description="✅ Model and template ready!")
+                        else:
+                            progress.update(task, description="✅ Model ready (template download failed)")
+                        
                         return True
                     else:
                         progress.update(task, description="❌ Download incomplete")
@@ -343,13 +446,24 @@ class LocalLLMProvider:
             # Kill any existing server on this port
             self._kill_existing_server()
             
-            # Use the exact command that works with fixed chat template
-            template_path = os.path.join(os.path.dirname(__file__), "..", "fixed_chat_template.jinja")
+            # Use the downloaded chat template if available
             cmd = [
                 "llama-server",
                 "-m", self.model_path,  # Use local model file instead of Hugging Face URL
                 "--jinja",
-                "--chat-template-file", template_path,
+            ]
+            
+            # Add chat template file if available
+            if self.chat_template_path and os.path.exists(self.chat_template_path):
+                cmd.extend(["--chat-template-file", self.chat_template_path])
+                logger.info(f"✅ Using custom chat template: {self.chat_template_path}")
+                # Removed the announcement message as requested
+            else:
+                logger.warning("❌ No custom chat template found, using llama-server default")
+                # Removed the announcement message as requested
+            
+            # Continue with other parameters
+            cmd.extend([
                 "--reasoning-format", "deepseek",
                 "-ngl", "99",
                 "-fa", 
@@ -363,17 +477,39 @@ class LocalLLMProvider:
                 "--no-context-shift",
                 "--host", self.host,
                 "--port", str(self.port)
-            ]
+            ])
+            
+            # Log the full command for debugging
+            logger.info(f"Starting llama-server with command: {' '.join(cmd)}")
             
             # Start in background
+            logger.info("Attempting to start llama-server process...")
             self.server_process = subprocess.Popen(
                 cmd,
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-                preexec_fn=os.setsid if os.name != 'nt' else None
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                preexec_fn=os.setsid if os.name != 'nt' else None,
+                text=True
             )
             
             logger.info(f"Started ClickHouse AI Agent with PID {self.server_process.pid}")
+            
+            # Give the process a moment to start and check if it's still running
+            import time
+            time.sleep(2)
+            
+            if self.server_process.poll() is not None:
+                # Process has already terminated
+                stdout, stderr = self.server_process.communicate()
+                logger.error(f"llama-server process terminated immediately!")
+                logger.error(f"Exit code: {self.server_process.returncode}")
+                if stdout:
+                    logger.error(f"STDOUT: {stdout}")
+                if stderr:
+                    logger.error(f"STDERR: {stderr}")
+                raise RuntimeError(f"llama-server failed to start. Exit code: {self.server_process.returncode}")
+            else:
+                logger.info("llama-server process is running, proceeding with startup...")
             
         except Exception as e:
             logger.error(f"Failed to start ClickHouse AI Agent: {e}")

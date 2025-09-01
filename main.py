@@ -5,6 +5,7 @@ A beautiful CLI AI agent for ClickHouse database analysis and operations.
 """
 
 import asyncio
+import os
 import sys
 from pathlib import Path
 from typing import Optional
@@ -233,6 +234,59 @@ def clear():
         console.print("[green]🎉 Configuration cleared! Run 'proto' to start fresh onboarding.[/green]")
     else:
         console.print("[blue]Configuration clearing cancelled.[/blue]")
+
+@app.command()
+def refresh_template():
+    """Refresh chat template from Hugging Face repository"""
+    from providers.local_llm import LocalLLMProvider
+    
+    console.print("[bold cyan]🔄 Refreshing Chat Template[/bold cyan]")
+    console.print("Fetching latest chat template from Hugging Face repository...")
+    console.print()
+    
+    try:
+        # Create a minimal provider instance just for template refresh
+        provider = LocalLLMProvider.__new__(LocalLLMProvider)
+        provider.model_name = "vishprometa/clickhouse-qwen3-1.7b-gguf"
+        provider.chat_template_file = "chat_template.jinja"
+        provider.chat_template_url = f"https://huggingface.co/{provider.model_name}/resolve/main/{provider.chat_template_file}"
+        provider.cache_dir = os.path.expanduser("~/.cache/llama.cpp")
+        provider.chat_template_path = os.path.join(provider.cache_dir, f"{provider.model_name.replace('/', '_')}_{provider.chat_template_file}")
+        
+        # Add the announce method for user feedback
+        def _announce(message: str):
+            console.print(f"[cyan]{message}[/cyan]")
+        provider._announce = _announce
+        
+        # Refresh the template
+        success = provider.refresh_chat_template()
+        
+        if success:
+            console.print()
+            console.print("[green]✅ Chat template refreshed successfully![/green]")
+            console.print(f"[dim]Template location: {provider.chat_template_path}[/dim]")
+            
+            # Show template info
+            if os.path.exists(provider.chat_template_path):
+                with open(provider.chat_template_path, 'r') as f:
+                    content = f.read()
+                    console.print(f"[dim]Template size: {len(content)} characters[/dim]")
+                    
+                    # Show a preview of the template
+                    preview = content[:200] + "..." if len(content) > 200 else content
+                    console.print()
+                    console.print("[bold]Template Preview:[/bold]")
+                    console.print(f"[dim]{preview}[/dim]")
+        else:
+            console.print()
+            console.print("[red]❌ Failed to refresh chat template[/red]")
+            console.print("[yellow]The agent will use the default template if available[/yellow]")
+            sys.exit(1)
+            
+    except Exception as e:
+        console.print()
+        console.print(f"[red]❌ Error refreshing template: {e}[/red]")
+        sys.exit(1)
 
 @app.command()
 def version():
