@@ -12,7 +12,7 @@ long_description = (this_directory / "README.md").read_text()
 
 setup(
     name="proto-clickhouse-agent",
-    version="1.0.0",
+    version="1.0.2",
     author="Proto Team",
     author_email="team@proto.dev",
     description="ClickHouse AI Agent - Natural language interface for ClickHouse databases",
