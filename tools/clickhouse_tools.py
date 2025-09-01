@@ -62,6 +62,29 @@ class ClickHouseConnection:
 # Simplified tool definitions - just the essentials for data analysis
 CLICKHOUSE_TOOLS = [
     {
+        "name": "list_databases",
+        "description": "List all available databases in ClickHouse, returns JSON with database names",
+        "input_schema": {
+            "type": "object",
+            "properties": {},
+            "required": []
+        }
+    },
+    {
+        "name": "switch_database",
+        "description": "Switch to a different database in ClickHouse, returns confirmation with new database name",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "database_name": {
+                    "type": "string",
+                    "description": "Name of the database to switch to"
+                }
+            },
+            "required": ["database_name"]
+        }
+    },
+    {
         "name": "execute_clickhouse_query",
         "description": "Execute SQL queries for SMALL to MEDIUM datasets (≤100 rows) or when immediate analysis is needed. Returns structured data for analysis. Use for: quick queries, aggregations, counts, schema exploration, small data previews.",
         "input_schema": {

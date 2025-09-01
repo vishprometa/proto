@@ -301,7 +301,15 @@ class ClickHouseAgent:
         """Execute a tool and return the result"""
         
         try:
-            if tool_name == "execute_clickhouse_query":
+            if tool_name == "list_databases":
+                return await self.tool_executor.list_databases()
+            
+            elif tool_name == "switch_database":
+                return await self.tool_executor.switch_database(
+                    database_name=tool_input["database_name"]
+                )
+            
+            elif tool_name == "execute_clickhouse_query":
                 return await self.tool_executor.execute_clickhouse_query(
                     query=tool_input["query"]
                 )
