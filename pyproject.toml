@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "proto-clickhouse-agent"
-version = "1.0.2"
+version = "1.0.3"
 description = "ClickHouse AI Agent - Natural language interface for ClickHouse databases"
 readme = "README.md"
 license = "MIT"
